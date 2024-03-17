@@ -1,0 +1,5 @@
+aiogram==3.4.1
+beautifulsoup4==4.12.3
+google-generativeai==0.3.2
+requests==2.31.0
+aiohttp-socks==0.8.4
