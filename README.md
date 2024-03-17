@@ -5,5 +5,5 @@ Here we using:
 * asyncio - telegram bot api async wrapper
 * BeautifulSoup - for parsing html with search results and articles from pubmed.ncbi.nlm.nih.gov
 * google.generativeai - google api for summarizing with google's llm model Gemini
-* Docker - contenirezation
-* Google cloud Run - serverless hosting
+* Pythonewerywhere - deployment
+
