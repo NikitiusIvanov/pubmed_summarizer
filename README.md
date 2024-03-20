@@ -1,8 +1,8 @@
 # 🤖 LLM PubMed Summarizer Telegram bot
 
-🧑‍💻 Telegram bot connected with Google AI API (Gemini) for summarizing free (may require subscription for some) full-text PubMed articles.
+## 🧑‍💻 Telegram bot API connected with Google AI API (Gemini model) for search and summarizing free full-text PubMed articles.
 
-🌐 Live demo: https://t.me/pubmed_summary_bot (It's on a free hosting platform, so it might be laggy.)
+## 🌐 Live demo: https://t.me/pubmed_summary_bot (It's on a free hosting platform, so it might be laggy.)
 
 ## 🧠 Main Logic:
 * Start chat with user.
