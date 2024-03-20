@@ -7,7 +7,7 @@
 ## 🧠 Main Logic:
 * Start chat with user.
 * Request query and when it's entered, perform search in PubMed for free full-text articles with meta-analyses and systematic reviews.
-* Perform search and return results as titles of the found articles in a poll format.
+* Parsing PubMed search results and return in a telegram poll format.
 * Take the user's vote results with selected articles and start grabbing texts from the articles.
 * Send results to Gemini-LLM for summarization with a prepared prompt.
 * Take summaries from Gemini, format them, and return them to the chat.
