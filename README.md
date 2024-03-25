@@ -5,12 +5,12 @@
 ## 🌐 Live demo: https://t.me/pubmed_summary_bot (It's on a free hosting platform, so it might be laggy.)
 
 ## 🧠 Main Logic:
-* Start chat with user.
-* Request query and when it's entered, perform search in PubMed for free full-text articles with meta-analyses and systematic reviews.
-* Parsing PubMed search results and return in a telegram poll format.
-* Take the user's vote results with selected articles and start grabbing texts from the articles.
-* Send results to Gemini-LLM for summarization with a prepared prompt.
-* Take summaries from Gemini, format them, and return them to the chat.
+* Start chat with user
+* Request query and when it's entered, perform search in PubMed for free full-text articles with meta-analyses and systematic reviews
+* Parsing PubMed search results and return in a telegram poll format
+* Take the user's vote results with selected articles and start grabbing texts from the articles
+* Send results to Gemini-LLM for summarization with a prepared prompt
+* Take summaries from Gemini, format them, and return them to the chat
 
 
 ## 🫀 Stack:
