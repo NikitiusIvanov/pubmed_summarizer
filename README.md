@@ -1,6 +1,6 @@
-# 🤖 LLM PubMed Summarizer Telegram bot
+# 🤖 LLM-powered telegram bot for parsing by query and summarizes PubMed meta-analysis and systematic reviews.
 
-## 🧑‍💻 Telegram bot API connected with Google AI API (Gemini model) for search and summarizing free full-text PubMed articles.
+## 🧑‍💻 Telegram bot API connected with Google AI API (Gemini 1.5 Pro) for search and summarizing free full-text PubMed articles.
 
 ## 🌐 Live demo: https://t.me/pubmed_summary_bot (It's on a free hosting platform, so it might be laggy.)
 
