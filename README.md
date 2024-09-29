@@ -1,4 +1,4 @@
-# 🤖 LLM-powered telegram bot for parsing by query and summarizes PubMed meta-analysis and systematic reviews.
+# 🤖 LLM-powered Telegram bot for parsing and summarizes PubMed meta-analysis and systematic reviews
 
 ## 🧑‍💻 Telegram bot API connected with Google AI API (Gemini 1.5 Pro) for search and summarizing free full-text PubMed articles.
 
@@ -17,4 +17,4 @@
 * asyncio - Telegram bot API async wrapper
 * BeautifulSoup - For parsing HTML with search results and articles from pubmed.ncbi.nlm.nih.gov
 * google.generativeai - Google API for summarizing with Google's LLM model Gemini
-* PythonAnywhere - Deployment
+* Google Cloud Run - Serverless deployment
