@@ -2,7 +2,7 @@
 
 ## 🧑‍💻 Telegram bot API connected with Google AI API (Gemini 1.5 Pro) for search and summarizing free full-text PubMed articles.
 
-## 🌐 Live demo: https://t.me/pubmed_summary_bot (It's on a free hosting platform, so it might be laggy.)
+## 🌐 Live demo: https://t.me/pubmed_summary_bot (First message trigger deploying the service so first responce might requires a few seconds)
 
 ## 🧠 Main Logic:
 * Start chat with user
