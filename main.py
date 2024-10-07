@@ -1,5 +1,6 @@
 import re
 import sys
+import os
 import time
 import json
 import asyncio
@@ -8,6 +9,8 @@ import requests
 import google.generativeai as genai
 from bs4 import BeautifulSoup
 
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiogram.client.default import DefaultBotProperties
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Filter
@@ -23,19 +26,45 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
+from aiohttp import web
 
-with open('credentials.json', 'r') as file:
-  	credentials = json.load(file)
 
-genai.configure(api_key=credentials['google_ai_api_key'])
+####################### get the enviroment variables ####################### 
+# get the credentials from env vars
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+GOOGLE_AI_API_KEY = os.getenv('GOOGLE_AI_API_KEY')
 
-model_answering = genai.GenerativeModel('gemini-pro')
+BASE_WEBHOOK_URL = os.getenv('BASE_WEBHOOK_URL')
+# Webserver settings
+WEB_SERVER_HOST = "0.0.0.0"
+# Port for incoming request
+WEB_SERVER_PORT = 8080
+# Path to webhook route, on which Telegram will send requests
+WEBHOOK_PATH = "/webhook"
+
+
+####################### google AI API settings ####################### 
+genai.configure(api_key=GOOGLE_AI_API_KEY)
+
+model_answering = genai.GenerativeModel('gemini-1.5-pro-preview-0514')
 
 generation_config = {'temperature': 0}
 
-BOT_TOKEN = credentials['tg_bot_api_key']
+PROMPT = """
+You are a helpful and informative bot that help researchers to find and
+summarize results from medicine and biology article's abstract that included below.
+For given abstract explore all information and 
+return summary text with listing all significant results 
+please prefer results that represented by numbers, for example:
+    "N participants in K studies were included in analisys and 
+    shows factor X decrease risk of state Y for 30% (CI 25-35, p < 0.01)"
+Please dont write any additional titles, oly list of results separated by "-"
+ABSTRACT: {abstract}
+"""
 
 ####################### PARSERS AND DATA PROCESSING #######################
+PARSERS_AND_DATA_PROCESSING_CHAPTER = None
+
 def get_html_pm_search_results(
     query: str,
     n_results: int = 10,
@@ -251,16 +280,7 @@ def get_summary_from_abstract(
     abstract: str,
     model_answering: callable,
     generation_config: dict,
-    prompt_to_summarize_pubmed_abstracts: str = """You are a helpful and informative bot that help researchers to find and
-        summarize results from medicine and biology article's abstract that included below.
-        For given abstract explore all information and 
-        return summary text with listing all significant results 
-        please prefer results that represented by numbers, for example:
-            "N participants in K studies were included in analisys and 
-            shows factor x decrease risk of state y for 30% (CI 25-35, p < 0.01)"
-        Please dont write any additional titles, oly list of results separated by "-"
-        ABSTRACT: {abstract}
-    """,
+    prompt_to_summarize_pubmed_abstracts: str = PROMPT,
     n_tryes: int = 3,
 ) -> str:
     try:
@@ -373,6 +393,8 @@ def result_formatting(
     
 
 ####################### TG BOT LOGIC #######################
+TG_BOT_LOGIC_CHAPTER = None
+
 async def send_pool(
     chat_id: int,
     question: str,
@@ -655,14 +677,53 @@ async def summarize_all_results(message: Message, state: FSMContext):
             print(chunk)
 
 
-async def main() -> None:
-    # Initialize Bot instance with a default parse mode which will be passed to all API calls
-    bot = Bot(credentials['tg_bot_api_key'], parse_mode=ParseMode.HTML)
-    # And the run events dispatching
+#################################### Bot settings ####################################
+BOT_SETTINGS_CHAPTER = None
+# Set the webhook for recieving updates in your url wia HTTPS POST with JSONs
+async def on_startup(bot: Bot) -> None:
+    
+    # If you have a self-signed SSL certificate, then you will need to send a public
+    # certificate to Telegram, for this case we'll use google cloud run service so
+    # it not required to send sertificates
+    await bot.set_webhook(
+        f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
+    )
+
+
+def main() -> None:
+    # Dispatcher is a root router
     dp = Dispatcher()
+
     dp.include_router(form_router)
-    await dp.start_polling(bot)
+
+    # Register startup hook to initialize webhook
+    dp.startup.register(on_startup)
+
+    # Initialize Bot instance with a default parse mode which will be passed to all API calls
+    bot = Bot(BOT_TOKEN, default=DefaultBotProperties())
+    
+    # And the run events dispatching
+    # Create aiohttp.web.Application instance
+    app = web.Application()
+
+    # Create an instance of request handler,
+    # aiogram has few implementations for different cases of usage
+    # In this example we use SimpleRequestHandler 
+    # which is designed to handle simple cases
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
+
+    # Register webhook handler on application
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+
+    # Mount dispatcher startup and shutdown hooks to aiohttp application
+    setup_application(app, dp, bot=bot)
+
+    # And finally start webserver
+    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
+    main()

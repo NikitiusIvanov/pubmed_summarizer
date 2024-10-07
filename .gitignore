@@ -1,0 +1,15 @@
+# Media
+.gif
+
+# credentials
+credentials.json
+
+# Jupyter Notebook
+.ipynb
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
