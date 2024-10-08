@@ -20,6 +20,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
+    CallbackQuery,
     PollAnswer,
     KeyboardButton,
     Message,
@@ -46,7 +47,7 @@ WEBHOOK_PATH = "/webhook"
 ####################### google AI API settings ####################### 
 genai.configure(api_key=GOOGLE_AI_API_KEY)
 
-model_answering = genai.GenerativeModel('gemini-1.5-pro-preview-0514')
+model_answering = genai.GenerativeModel('gemini-1.5-pro-002')
 
 generation_config = {'temperature': 0}
 
@@ -63,7 +64,7 @@ ABSTRACT: {abstract}
 """
 
 ####################### PARSERS AND DATA PROCESSING #######################
-PARSERS_AND_DATA_PROCESSING_CHAPTER = None
+PARSERS_CHAPTER = None
 
 def get_html_pm_search_results(
     query: str,
@@ -390,7 +391,28 @@ def result_formatting(
     else: chunks = [result]
 
     return chunks
+
+
+def get_progress_bar(
+    len_results: int,
+    n_processed_results: int,
+    progress_lenght: int = 20,
+    filled_block: str = '▓',
+    empty_block: str = '░'
+) -> str:
+    progress_lenght = 20
     
+    n_results = len_results
+    if progress_lenght % n_results == 0:
+        step_size = progress_lenght // n_results
+    else:
+        step_size = (progress_lenght // n_results) + 1
+
+    return (    
+        f'{"".join([filled_block] * n_processed_results * step_size)}'
+        f'{"".join([empty_block] * ((n_results - n_processed_results) * step_size))}'
+    )
+
 
 ####################### TG BOT LOGIC #######################
 TG_BOT_LOGIC_CHAPTER = None
@@ -499,6 +521,7 @@ async def get_pubmed_results_from_custom_link(message: Message, state: FSMContex
     else:
         output_text = 'url must start with https://pubmed.ncbi.nlm.nih.gov/?term='
         await message.answer(output_text, reply_markup=keyboard_error_link())
+        await state.clear()
         return  
 
     await state.update_data(custom_link=custom_link)
@@ -564,7 +587,11 @@ async def get_pubmed_results_from_query(message: Message, state: FSMContext):
 
 
 @form_router.poll_answer()
-async def summarize_by_poll_answer_reaction(poll_answer: PollAnswer, state: FSMContext):
+async def summarize_by_poll_answer_reaction(
+    poll_answer: PollAnswer, 
+    state: FSMContext,
+    callback_query: CallbackQuery
+):
     user_id = poll_answer.user.id
     data = await state.get_data()
     chat_id = data['chat_id']
@@ -581,31 +608,83 @@ async def summarize_by_poll_answer_reaction(poll_answer: PollAnswer, state: FSMC
         text=f"Your choices: {', '.join(chosen_options)}"
     )
 
-    await bot.send_message(
+    len_results = len(chosen_options)
+    n_processed_results = 0
+
+    progress_bar = get_progress_bar(
+        len_results=len_results,
+        n_processed_results=n_processed_results
+    )
+    
+    message = await bot.send_message(
         chat_id=chat_id,
-        text='Start grabbing articles abstracts (it took about 10s)'
+        text=(
+            'Grabbing articles abstracts..\n'
+            f'{progress_bar} {n_processed_results} / {len_results}'
+        )
     )
 
-    abstracts = [
-        get_pm_abstract_from_pm_id(pm_id=pm_ids[index])
-        for index in poll_answer.option_ids 
-    ]
+    abstracts = []
+
+    for index in poll_answer.option_ids:
+
+        abstracts.append(get_pm_abstract_from_pm_id(pm_id=pm_ids[index]))
+
+        n_processed_results += 1
+
+        progress_bar = get_progress_bar(
+            len_results=len_results,
+            n_processed_results=n_processed_results
+        )
+
+        await message.edit_text(
+            text=(
+                'Grabbing articles abstracts..\n'
+                f'{progress_bar} {n_processed_results} / {len_results}'
+            )
+        )
 
     await state.update_data(abstracts=abstracts)
+
+    len_results = len(chosen_options)
+    n_processed_results = 0
+
+    progress_bar = get_progress_bar(
+        len_results=len_results,
+        n_processed_results=n_processed_results
+    )
     
-    await bot.send_message(
+    message = await bot.send_message(
         chat_id=chat_id,
-        text='Start summarizing (it took about 20s)'
+        text=(
+            'Summarizing..'
+            f'{progress_bar} {n_processed_results} / {len_results}'
+        )
     )
 
-    summaries = [
-        get_summary_from_abstract(
-            abstract=abstract,
-            model_answering=model_answering,
-            generation_config=generation_config,
+    summaries = []
+    for abstract in abstracts:
+        summaries.append(
+            get_summary_from_abstract(
+                abstract=abstract,
+                model_answering=model_answering,
+                generation_config=generation_config,
+            )
         )
-        for abstract in abstracts
-    ]
+
+        n_processed_results += 1
+
+        progress_bar = get_progress_bar(
+            len_results=len_results,
+            n_processed_results=n_processed_results
+        )
+
+        await message.edit_text(
+            text=(
+                'Summarizing..'
+                f'{progress_bar} {n_processed_results} / {len_results}'
+            )
+        )
 
     results = result_formatting(
         titles=titles,
