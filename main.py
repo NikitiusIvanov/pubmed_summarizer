@@ -8,6 +8,7 @@ import logging
 import requests
 import google.generativeai as genai
 from bs4 import BeautifulSoup
+import httpx
 
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram.client.default import DefaultBotProperties
@@ -66,7 +67,7 @@ ABSTRACT: {abstract}
 ####################### PARSERS AND DATA PROCESSING #######################
 PARSERS_CHAPTER = None
 
-def get_html_pm_search_results(
+async def get_html_pm_search_results(
     query: str,
     n_results: int = 10,
     custom_url: str = None,
@@ -117,7 +118,10 @@ def get_html_pm_search_results(
         else:
             raise Exception('url must start with https://pubmed.ncbi.nlm.nih.gov/?term=')
     
-    response = requests.get(url)
+    # response = requests.get(url)
+    # Make an async GET request using httpx
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
 
     # Check if the request was successful (status code 200)
     if response.status_code == 200:
@@ -127,19 +131,19 @@ def get_html_pm_search_results(
         print("Failed to retrieve HTML content. Status code:", response.status_code)
 
 
-def get_search_results_texts(
+async def get_search_results_texts(
     query: str,
     n_results: int = 10,
     custom_link: str = None,
 ) -> tuple[str, list[str], list[str]]:
     
     if query is not None:
-        html_content = get_html_pm_search_results(
+        html_content = await get_html_pm_search_results(
             query=query,
             n_results=n_results,
         )
     if custom_link is not None:
-        html_content = get_html_pm_search_results(
+        html_content = await get_html_pm_search_results(
             query=None,
             n_results=n_results,
             custom_url=custom_link
@@ -203,11 +207,15 @@ def get_search_results_texts(
     return pm_ids, titles, titles_cut
 
 
-def get_pm_abstract_from_pm_id(
+async def get_pm_abstract_from_pm_id(
     pm_id: str
 ) -> str:
     pm_url = f'https://pubmed.ncbi.nlm.nih.gov/{pm_id}/'
-    response = requests.get(pm_url)
+    # response = requests.get(pm_url)
+    
+    # Make an async GET request using httpx
+    async with httpx.AsyncClient() as client:
+        response = await client.get(pm_url)
 
     # Check if the request was successful (status code 200)
     if response.status_code == 200:
@@ -277,16 +285,17 @@ def pubmed_parsed_abstracts_texts_joining(
     )
  
 
-def get_summary_from_abstract(
+async def get_summary_from_abstract(
     abstract: str,
-    model_answering: callable,
+    model_answering: genai.GenerativeModel,
     generation_config: dict,
     prompt_to_summarize_pubmed_abstracts: str = PROMPT,
     n_tryes: int = 3,
 ) -> str:
+
     try:
-        summary = model_answering.generate_content(
-            prompt_to_summarize_pubmed_abstracts.format_map({'abstract': abstract}),
+        summary = await model_answering.generate_content_async(
+            contents=prompt_to_summarize_pubmed_abstracts.format_map({'abstract': abstract}),
             generation_config=generation_config
         )
 
@@ -296,8 +305,8 @@ def get_summary_from_abstract(
         n_try = 0
         while summary is None and n_try < n_tryes:
             try:
-                summary = model_answering.generate_content(
-                    prompt_to_summarize_pubmed_abstracts.format_map({'abstract': abstract}),
+                summary = await model_answering.generate_content_async(
+                    contents=prompt_to_summarize_pubmed_abstracts.format_map({'abstract': abstract}),
                     generation_config=generation_config
                 )
             except:
@@ -529,7 +538,7 @@ async def get_pubmed_results_from_custom_link(message: Message, state: FSMContex
     await state.set_state(Form.query_results)
       
     ##### search process and return results
-    pm_ids, titles, titles_cut = get_search_results_texts(
+    pm_ids, titles, titles_cut = await get_search_results_texts(
         query=None,
         custom_link=message.text
     )
@@ -570,7 +579,7 @@ async def get_pubmed_results_from_query(message: Message, state: FSMContext):
     await message.answer(output_text, reply_markup=keyboard_check_search())    
     
     ##### search process and return results
-    pm_ids, titles, titles_cut = get_search_results_texts(
+    pm_ids, titles, titles_cut = await get_search_results_texts(
         query=message.text
     )
     chat_id = message.chat.id
@@ -627,7 +636,7 @@ async def summarize_by_poll_answer_reaction(
 
     for index in poll_answer.option_ids:
 
-        abstracts.append(get_pm_abstract_from_pm_id(pm_id=pm_ids[index]))
+        abstracts.append(await get_pm_abstract_from_pm_id(pm_id=pm_ids[index]))
 
         n_processed_results += 1
 
@@ -664,7 +673,7 @@ async def summarize_by_poll_answer_reaction(
     summaries = []
     for abstract in abstracts:
         summaries.append(
-            get_summary_from_abstract(
+            await get_summary_from_abstract(
                 abstract=abstract,
                 model_answering=model_answering,
                 generation_config=generation_config,
@@ -719,7 +728,7 @@ async def summarize_all_results(message: Message, state: FSMContext):
     )
 
     abstracts = [
-        get_pm_abstract_from_pm_id(pm_id=pm_ids[index])
+        await get_pm_abstract_from_pm_id(pm_id=pm_ids[index])
         for index in range(len(pm_ids)) 
     ]
 
@@ -729,7 +738,7 @@ async def summarize_all_results(message: Message, state: FSMContext):
     )
 
     summaries = [
-        get_summary_from_abstract(
+        await get_summary_from_abstract(
             abstract=abstract,
             model_answering=model_answering,
             generation_config=generation_config,
