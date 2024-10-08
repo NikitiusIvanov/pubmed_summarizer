@@ -656,7 +656,7 @@ async def summarize_by_poll_answer_reaction(
     message = await bot.send_message(
         chat_id=chat_id,
         text=(
-            'Summarizing..'
+            'Summarizing..\n'
             f'{progress_bar} {n_processed_results} / {len_results}'
         )
     )
