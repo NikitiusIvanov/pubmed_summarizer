@@ -804,7 +804,8 @@ def main() -> None:
     # Register startup hook to initialize webhook
     dp.startup.register(on_startup)
 
-    # Initialize Bot instance with a default parse mode which will be passed to all API calls
+    # Initialize Bot instance with a default parse mode 
+    # which will be passed to all API calls
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties())
     
     # And the run events dispatching
