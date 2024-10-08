@@ -589,8 +589,7 @@ async def get_pubmed_results_from_query(message: Message, state: FSMContext):
 @form_router.poll_answer()
 async def summarize_by_poll_answer_reaction(
     poll_answer: PollAnswer, 
-    state: FSMContext,
-    callback_query: CallbackQuery
+    state: FSMContext
 ):
     user_id = poll_answer.user.id
     data = await state.get_data()
