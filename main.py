@@ -782,6 +782,9 @@ async def on_startup(bot: Bot) -> None:
     )
 
 class CustomRequestHandler(BaseRequestHandler):
+    def __init__(self, dispatcher: Dispatcher, bot: Bot):
+        # Initialize the parent class with dispatcher and bot
+        super().__init__(dispatcher=dispatcher, bot=bot)
     
     async def handle_request(self, request: web.Request) -> web.Response:
         # Parse the incoming update
@@ -816,13 +819,13 @@ def main() -> None:
     # aiogram has few implementations for different cases of usage
     # In this example we use SimpleRequestHandler 
     # which is designed to handle simple cases
-    webhook_requests_handler = CustomRequestHandler(
+    CustomRequestHandler(
         dispatcher=dp,
         bot=bot,
-    )
+    ).register(app, path=WEBHOOK_PATH)
 
     # Register webhook handler on application
-    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    # webhook_requests_handler.register(app, path=WEBHOOK_PATH)
 
     # Mount dispatcher startup and shutdown hooks to aiohttp application
     setup_application(app, dp, bot=bot)
