@@ -10,7 +10,11 @@ import google.generativeai as genai
 from bs4 import BeautifulSoup
 import httpx
 
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiogram.webhook.aiohttp_server import (
+    BaseRequestHandler,
+    SimpleRequestHandler, 
+    setup_application
+)
 from aiogram.client.default import DefaultBotProperties
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
@@ -21,6 +25,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
+    Update,
     CallbackQuery,
     PollAnswer,
     KeyboardButton,
@@ -776,6 +781,19 @@ async def on_startup(bot: Bot) -> None:
         f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
     )
 
+class CustomRequestHandler(BaseRequestHandler):
+    
+    async def handle_request(self, request: web.Request) -> web.Response:
+        # Parse the incoming update
+        update = Update(**await request.json())
+
+        # Send 200 OK response immediately to avoid Telegram retrying
+        response = web.Response(status=200)
+
+        # Process the update in the background
+        asyncio.create_task(self.dispatcher.process_update(update))
+
+        return response
 
 def main() -> None:
     # Dispatcher is a root router
@@ -797,7 +815,7 @@ def main() -> None:
     # aiogram has few implementations for different cases of usage
     # In this example we use SimpleRequestHandler 
     # which is designed to handle simple cases
-    webhook_requests_handler = SimpleRequestHandler(
+    webhook_requests_handler = CustomRequestHandler(
         dispatcher=dp,
         bot=bot,
     )
