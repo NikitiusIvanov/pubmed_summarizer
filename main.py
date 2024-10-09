@@ -34,6 +34,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 from aiohttp import web
+from aiogram.client.session.aiohttp import AiohttpSession
 
 
 ####################### get the enviroment variables ####################### 
@@ -782,41 +783,55 @@ async def on_startup(bot: Bot) -> None:
     )
 
 
-def main() -> None:
-    # Dispatcher is a root router
-    dp = Dispatcher()
+async def main() -> None:
+    # Initialize Bot instance with a default parse mode which will be passed to all API calls
+    session = AiohttpSession()
 
-    dp.include_router(form_router)
-
-    # Register startup hook to initialize webhook
-    dp.startup.register(on_startup)
-
-    # Initialize Bot instance with a default parse mode 
-    # which will be passed to all API calls
-    bot = Bot(BOT_TOKEN, default=DefaultBotProperties())
-    
+    bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML, session=session)
     # And the run events dispatching
-    # Create aiohttp.web.Application instance
-    app = web.Application()
-
-    # Create an instance of request handler,
-    # aiogram has few implementations for different cases of usage
-    # In this example we use SimpleRequestHandler 
-    # which is designed to handle simple cases
-    webhook_requests_handler = SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot,
-    )
-
-    # Register webhook handler on application
-    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
-
-    # Mount dispatcher startup and shutdown hooks to aiohttp application
-    setup_application(app, dp, bot=bot)
-
-    # And finally start webserver
-    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+    dp = Dispatcher()
+    dp.include_router(form_router)
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    main()
+    asyncio.run(main())
+
+# def main() -> None:
+#     # Dispatcher is a root router
+#     dp = Dispatcher()
+
+#     dp.include_router(form_router)
+
+#     # Register startup hook to initialize webhook
+#     dp.startup.register(on_startup)
+
+#     # Initialize Bot instance with a default parse mode 
+#     # which will be passed to all API calls
+#     bot = Bot(BOT_TOKEN, default=DefaultBotProperties())
+    
+#     # And the run events dispatching
+#     # Create aiohttp.web.Application instance
+#     app = web.Application()
+
+#     # Create an instance of request handler,
+#     # aiogram has few implementations for different cases of usage
+#     # In this example we use SimpleRequestHandler 
+#     # which is designed to handle simple cases
+#     webhook_requests_handler = SimpleRequestHandler(
+#         dispatcher=dp,
+#         bot=bot,
+#     )
+
+#     # Register webhook handler on application
+#     webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+
+#     # Mount dispatcher startup and shutdown hooks to aiohttp application
+#     setup_application(app, dp, bot=bot)
+
+#     # And finally start webserver
+#     web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+
+# if __name__ == "__main__":
+#     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+#     main()
