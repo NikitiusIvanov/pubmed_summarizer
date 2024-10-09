@@ -781,7 +781,13 @@ async def on_startup(bot: Bot) -> None:
     # await bot.set_webhook(
     #     f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
     # )
-    logging.info("Bot is starting...")
+    webhook_info = await bot.get_webhook_info()
+    if webhook_info.url:
+        logging.info(f"Webhook is active at {webhook_info.url}, deleting it...")
+        await bot.delete_webhook()
+        logging.info("Webhook deleted successfully.")
+    else:
+        logging.info("No active webhook found, proceeding with long-polling.")
 
 
 async def health_check(request):
@@ -792,6 +798,8 @@ async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
     session = AiohttpSession()
     bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML, session=session)
+
+    await on_startup(bot)
     
     # And the run events dispatching
     dp = Dispatcher()
