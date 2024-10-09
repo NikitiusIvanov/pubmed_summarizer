@@ -778,9 +778,10 @@ async def on_startup(bot: Bot) -> None:
     # If you have a self-signed SSL certificate, then you will need to send a public
     # certificate to Telegram, for this case we'll use google cloud run service so
     # it not required to send sertificates
-    await bot.set_webhook(
-        f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
-    )
+    # await bot.set_webhook(
+    #     f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
+    # )
+    logging.info("Bot is starting...")
 
 
 async def health_check(request):
