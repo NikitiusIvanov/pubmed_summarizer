@@ -810,7 +810,7 @@ async def main() -> None:
 
     # Set up aiohttp web server to serve health check
     app = web.Application()
-    app.add_routes([web.get("/", health_check)])  # Dummy endpoint for health checks
+    app.add_routes([web.get("/health", health_check)])  # Dummy endpoint for health checks
 
     # Start aiohttp web server for Google Cloud Run's health check
     runner = web.AppRunner(app)
