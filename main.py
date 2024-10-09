@@ -781,23 +781,6 @@ async def on_startup(bot: Bot) -> None:
         f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
     )
 
-    
-class CustomRequestHandler(BaseRequestHandler):
-    def __init__(self, dispatcher: Dispatcher):
-        # Initialize the parent class with dispatcher
-        super().__init__(dispatcher=dispatcher, handle_in_background=True)
-
-    async def handle_request(self, request: web.Request) -> web.Response:
-        # Parse the incoming update from the request
-        update_data = await request.json()
-        update = Update(**update_data)
-        
-        # Process the update (handled in background if handle_in_background=True)
-        await self.dispatcher.feed_update(update)
-        
-        # Send an immediate 200 OK response to Telegram
-        return web.Response(status=200)
-
 
 def main() -> None:
     # Dispatcher is a root router
@@ -820,7 +803,10 @@ def main() -> None:
     # aiogram has few implementations for different cases of usage
     # In this example we use SimpleRequestHandler 
     # which is designed to handle simple cases
-    webhook_requests_handler = CustomRequestHandler(dispatcher=dp)
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
 
     # Register webhook handler on application
     webhook_requests_handler.register(app, path=WEBHOOK_PATH)
