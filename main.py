@@ -790,8 +790,8 @@ async def on_startup(bot: Bot) -> None:
         logging.info("No active webhook found, proceeding with long-polling.")
 
 
-async def health_check(request):
-    return web.Response(text="Bot is alive!")
+# async def health_check(request):
+#     return web.Response(text="Bot is alive!")
 
 
 async def main() -> None:
@@ -808,22 +808,22 @@ async def main() -> None:
     # Run the bot with long-polling
     asyncio.create_task(dp.start_polling(bot))
 
-    # Set up aiohttp web server to serve health check
-    app = web.Application()
-    app.add_routes([web.get("/health", health_check)])  # Dummy endpoint for health checks
+    # # Set up aiohttp web server to serve health check
+    # app = web.Application()
+    # app.add_routes([web.get("/health", health_check)])  # Dummy endpoint for health checks
 
-    # Start aiohttp web server for Google Cloud Run's health check
-    runner = web.AppRunner(app)
-    await runner.setup()
+    # # Start aiohttp web server for Google Cloud Run's health check
+    # runner = web.AppRunner(app)
+    # await runner.setup()
 
-    site = web.TCPSite(runner, host="0.0.0.0", port=WEB_SERVER_PORT)
-    await site.start()
+    # site = web.TCPSite(runner, host="0.0.0.0", port=WEB_SERVER_PORT)
+    # await site.start()
 
-    logging.info(f"Serving on http://0.0.0.0:{WEB_SERVER_PORT}")
+    # logging.info(f"Serving on http://0.0.0.0:{WEB_SERVER_PORT}")
 
-    # Keep the bot and server running forever
-    while True:
-        await asyncio.sleep(3600)  # Just keep running the event loop
+    # # Keep the bot and server running forever
+    # while True:
+    #     await asyncio.sleep(3600)  # Just keep running the event loop
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
