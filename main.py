@@ -782,6 +782,8 @@ async def on_startup(bot: Bot) -> None:
         f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
     )
 
+async def health_check(request):
+    return web.Response(text="Bot is alive!")
 
 async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
@@ -792,6 +794,19 @@ async def main() -> None:
     dp = Dispatcher()
     dp.include_router(form_router)
     await dp.start_polling(bot)
+
+    # Set up aiohttp web server to serve health check
+    app = web.Application()
+    app.add_routes([web.get("/", health_check)])  # Dummy endpoint for health checks
+
+    # Start aiohttp web server for Google Cloud Run's health check
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    site = web.TCPSite(runner, host="0.0.0.0", port=WEB_SERVER_PORT)
+    await site.start()
+
+    logging.info(f"Serving on http://0.0.0.0:{WEB_SERVER_PORT}")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
