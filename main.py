@@ -794,7 +794,7 @@ class CustomRequestHandler(BaseRequestHandler):
         response = web.Response(status=200)
 
         # Process the update in the background
-        asyncio.create_task(self.dispatcher.process_update(update))
+        asyncio.create_task(self.dp.process_update(update))
 
         return response
 
@@ -819,13 +819,14 @@ def main() -> None:
     # aiogram has few implementations for different cases of usage
     # In this example we use SimpleRequestHandler 
     # which is designed to handle simple cases
-    CustomRequestHandler(
+    webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
         bot=bot,
-    ).register(app, path=WEBHOOK_PATH)
+        handle_in_background=True
+    )
 
     # Register webhook handler on application
-    # webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
 
     # Mount dispatcher startup and shutdown hooks to aiohttp application
     setup_application(app, dp, bot=bot)
