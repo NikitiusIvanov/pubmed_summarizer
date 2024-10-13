@@ -62,8 +62,9 @@ PROMPT = """
 You are a helpful and informative bot that help researchers to find and
 summarize results from medicine and biology article's abstract that included below.
 For given abstract explore all information and 
-return summary text with listing all significant results 
-please prefer results that represented by numbers, for example:
+return short summary text about 600 symbols (+-100 symbols depends of content). 
+Your summary must contains all significant results, prefer results 
+that represented by numbers, for example:
     "N participants in K studies were included in analisys and 
     shows factor X decrease risk of state Y for 30% (CI 25-35, p < 0.01)"
 Please dont write any additional titles, oly list of results separated by "-"
@@ -614,7 +615,8 @@ async def summarize_by_poll_answer_reaction(
     if poll_answer is not None:
         chosen_options = [str(x) for x in poll_answer.option_ids]
     else:
-        chosen_options = list(range(len(pm_ids)))
+        print('poll_answer is None')
+        return
     
     bot = poll_answer.bot
     await bot.send_message(
@@ -633,7 +635,7 @@ async def summarize_by_poll_answer_reaction(
     message = await bot.send_message(
         chat_id=chat_id,
         text=(
-            'Grabbing articles abstracts..\n'
+            'Grabbing articles abstracts\n'
             f'{progress_bar} {n_processed_results} / {len_results}'
         )
     )
@@ -653,7 +655,7 @@ async def summarize_by_poll_answer_reaction(
 
         await message.edit_text(
             text=(
-                'Grabbing articles abstracts..\n'
+                'Grabbing articles abstracts\n'
                 f'{progress_bar} {n_processed_results} / {len_results}'
             )
         )
@@ -671,7 +673,7 @@ async def summarize_by_poll_answer_reaction(
     message = await bot.send_message(
         chat_id=chat_id,
         text=(
-            'Summarizing..\n'
+            'Summarizing\n'
             f'{progress_bar} {n_processed_results} / {len_results}'
         )
     )
@@ -695,7 +697,7 @@ async def summarize_by_poll_answer_reaction(
 
         await message.edit_text(
             text=(
-                'Summarizing..'
+                'Summarizing\n'
                 f'{progress_bar} {n_processed_results} / {len_results}'
             )
         )
@@ -778,92 +780,64 @@ async def on_startup(bot: Bot) -> None:
     # If you have a self-signed SSL certificate, then you will need to send a public
     # certificate to Telegram, for this case we'll use google cloud run service so
     # it not required to send sertificates
-    # await bot.set_webhook(
-    #     f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
-    # )
+    await bot.set_webhook(
+        f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
+    )
+
+async def on_shutdown(bot: Bot) -> None:
+    
+    # If you have a self-signed SSL certificate, then you will need to send a public
+    # certificate to Telegram, for this case we'll use google cloud run service so
+    # it not required to send sertificates
     webhook_info = await bot.get_webhook_info()
+
     if webhook_info.url:
         logging.info(f"Webhook is active at {webhook_info.url}, deleting it...")
+        
         await bot.delete_webhook()
+        
         logging.info("Webhook deleted successfully.")
     else:
-        logging.info("No active webhook found, proceeding with long-polling.")
+        logging.info("No active webhook found.")
 
 
-# async def health_check(request):
-#     return web.Response(text="Bot is alive!")
+def main() -> None:
+    # Dispatcher is a root router
+    dp = Dispatcher()
 
+    dp.include_router(form_router)
 
-async def main() -> None:
-    # Initialize Bot instance with a default parse mode which will be passed to all API calls
-    session = AiohttpSession()
-    bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML, session=session)
+    # Register startup hook to initialize webhook
+    dp.startup.register(on_startup)
 
-    await on_startup(bot)
+    dp.shutdown.register(on_shutdown)
+
+    # Initialize Bot instance with a default parse mode 
+    # which will be passed to all API calls
+    bot = Bot(BOT_TOKEN, default=DefaultBotProperties())
     
     # And the run events dispatching
-    dp = Dispatcher()
-    dp.include_router(form_router)
-    
-    # Run the bot with long-polling
-    asyncio.create_task(dp.start_polling(bot))
+    # Create aiohttp.web.Application instance
+    app = web.Application()
 
-    # # Set up aiohttp web server to serve health check
-    # app = web.Application()
-    # app.add_routes([web.get("/health", health_check)])  # Dummy endpoint for health checks
+    # Create an instance of request handler,
+    # aiogram has few implementations for different cases of usage
+    # In this example we use SimpleRequestHandler 
+    # which is designed to handle simple cases
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
 
-    # # Start aiohttp web server for Google Cloud Run's health check
-    # runner = web.AppRunner(app)
-    # await runner.setup()
+    # Register webhook handler on application
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
 
-    # site = web.TCPSite(runner, host="0.0.0.0", port=WEB_SERVER_PORT)
-    # await site.start()
+    # Mount dispatcher startup and shutdown hooks to aiohttp application
+    setup_application(app, dp, bot=bot)
 
-    # logging.info(f"Serving on http://0.0.0.0:{WEB_SERVER_PORT}")
-
-    # # Keep the bot and server running forever
-    # while True:
-    #     await asyncio.sleep(3600)  # Just keep running the event loop
+    # And finally start webserver
+    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
-
-# def main() -> None:
-#     # Dispatcher is a root router
-#     dp = Dispatcher()
-
-#     dp.include_router(form_router)
-
-#     # Register startup hook to initialize webhook
-#     dp.startup.register(on_startup)
-
-#     # Initialize Bot instance with a default parse mode 
-#     # which will be passed to all API calls
-#     bot = Bot(BOT_TOKEN, default=DefaultBotProperties())
-    
-#     # And the run events dispatching
-#     # Create aiohttp.web.Application instance
-#     app = web.Application()
-
-#     # Create an instance of request handler,
-#     # aiogram has few implementations for different cases of usage
-#     # In this example we use SimpleRequestHandler 
-#     # which is designed to handle simple cases
-#     webhook_requests_handler = SimpleRequestHandler(
-#         dispatcher=dp,
-#         bot=bot,
-#     )
-
-#     # Register webhook handler on application
-#     webhook_requests_handler.register(app, path=WEBHOOK_PATH)
-
-#     # Mount dispatcher startup and shutdown hooks to aiohttp application
-#     setup_application(app, dp, bot=bot)
-
-#     # And finally start webserver
-#     web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
-
-# if __name__ == "__main__":
-#     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-#     main()
+    main()
