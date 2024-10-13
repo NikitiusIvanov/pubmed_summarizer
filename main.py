@@ -486,7 +486,6 @@ def keyboard_start():
 
 def keyboard_check_search():
     builder = ReplyKeyboardBuilder()
-    builder.button(text='Summarize abstracts for all results')
     builder.button(text='Start new search')
     builder.adjust(1)
     return builder.as_markup()
@@ -703,8 +702,8 @@ async def summarize_by_poll_answer_reaction(
         )
 
     results = result_formatting(
-        titles=titles,
-        pm_ids=pm_ids,
+        titles=[titles[x] for x in poll_answer.option_ids],
+        pm_ids=[pm_ids[x] for x in poll_answer.option_ids],
         summaries=summaries,
     )
 
