@@ -783,22 +783,6 @@ async def on_startup(bot: Bot) -> None:
         f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}",
     )
 
-async def on_shutdown(bot: Bot) -> None:
-    
-    # If you have a self-signed SSL certificate, then you will need to send a public
-    # certificate to Telegram, for this case we'll use google cloud run service so
-    # it not required to send sertificates
-    webhook_info = await bot.get_webhook_info()
-
-    if webhook_info.url:
-        logging.info(f"Webhook is active at {webhook_info.url}, deleting it...")
-        
-        await bot.delete_webhook()
-        
-        logging.info("Webhook deleted successfully.")
-    else:
-        logging.info("No active webhook found.")
-
 
 def main() -> None:
     # Dispatcher is a root router
@@ -808,8 +792,6 @@ def main() -> None:
 
     # Register startup hook to initialize webhook
     dp.startup.register(on_startup)
-
-    dp.shutdown.register(on_shutdown)
 
     # Initialize Bot instance with a default parse mode 
     # which will be passed to all API calls
@@ -836,6 +818,7 @@ def main() -> None:
 
     # And finally start webserver
     web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
